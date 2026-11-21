@@ -1,0 +1,68 @@
+import './style.css';
+import { createScene } from './scene.js';
+import { createApp } from './app.js';
+import { initLayers, PRESETS } from './ui/layers.js';
+import { initPicking } from './ui/picking.js';
+import { initInfoPanel } from './ui/infoPanel.js';
+import { initSearch } from './ui/search.js';
+import { initQuiz } from './ui/quiz.js';
+import { initExercises } from './ui/exercises.js';
+import { initViewTools } from './ui/viewTools.js';
+import { initShare } from './ui/share.js';
+
+const view = createScene(document.getElementById('view'));
+const app = createApp(view);
+
+initLayers(app);
+initPicking(app);
+initInfoPanel(app);
+initSearch(app);
+initQuiz(app);
+initExercises(app);
+initViewTools(app);
+const share = initShare(app);
+
+for (const b of document.querySelectorAll('[data-view]')) {
+  b.addEventListener('click', () => view.setView(b.dataset.view));
+}
+const root = document.getElementById('app');
+document.getElementById('sidebar-toggle').addEventListener('click', () => root.classList.toggle('collapsed'));
+if (window.innerWidth < 760) root.classList.add('collapsed');
+
+const loading = document.getElementById('loading');
+app.setAllLayers(PRESETS['All layers']);
+app.loadBody((f) => { loading.textContent = `Loading anatomy model… ${Math.round(f * 100)}%`; })
+  .then(async () => {
+    // Compile every material in its opaque and translucent variants, with and without the
+    // cross-section clip plane, now rather than mid-interaction.
+    const { batches } = app.body;
+    const t0 = performance.now();
+    for (const clip of [false, true]) {
+      view.renderer.localClippingEnabled = clip;
+      for (const t of [true, false]) {
+        for (const b of batches) {
+          b.visible = true;
+          b.material.transparent = t;
+          b.material.needsUpdate = true;
+        }
+        await view.renderer.compileAsync(view.scene, view.camera);
+        // Some GPU drivers only finish a shader at its first real draw, and compileAsync skips the
+        // shadow pass entirely, so draw each variant once behind the loading screen.
+        view.renderer.shadowMap.needsUpdate = true;
+        view.renderer.render(view.scene, view.camera);
+      }
+    }
+    console.debug(`shaders ready in ${Math.round(performance.now() - t0)} ms`);
+    app.setSlice({});
+    app.applyVisibility();
+    view.setView('reset');
+    await share.start();
+    loading.classList.add('done');
+  })
+  .catch((err) => {
+    console.error(err);
+    loading.textContent = 'Could not load the anatomy model.';
+  });
+
+window.somato3d = app;
+window.anatomy = app; // backwards compatibility in devtools

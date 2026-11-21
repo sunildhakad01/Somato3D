@@ -1,0 +1,26 @@
+{
+  "name": "somato3d",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Somato3D - Interactive 3D Human Anatomy & Biomechanics Explorer",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "models": "node tools/optimize.mjs",
+    "fix-model": "node tools/fix_model.mjs",
+    "exercises": "node tools/fetch-exercises.mjs"
+  },
+  "dependencies": {
+    "three": "^0.187.0",
+    "three-mesh-bvh": "^0.9.17"
+  },
+  "devDependencies": {
+    "@gltf-transform/core": "^4.5.1",
+    "@gltf-transform/extensions": "^4.5.1",
+    "@gltf-transform/functions": "^4.5.1",
+    "meshoptimizer": "^0.22.0",
+    "vite": "^8.3.5"
+  }
+}

@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Somato3D — Interactive 3D Human Anatomy</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%234b8dff'/%3E%3Cstop offset='1' stop-color='%23b5383c'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='14' fill='url(%23g)'/%3E%3Ctext x='32' y='45' font-size='36' text-anchor='middle' fill='white'%3E%E2%9A%95%3C/text%3E%3C/svg%3E" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <div id="app">
+      <canvas id="view"></canvas>
+
+      <button id="sidebar-toggle" class="icon-btn" aria-label="Toggle panel" title="Toggle panel">☰</button>
+
+      <aside id="sidebar">
+        <header class="brand">
+          <div class="logo">⚕</div>
+          <div>
+            <h1>Somato3D</h1>
+            <p>Interactive 3D human anatomy</p>
+          </div>
+        </header>
+
+        <section>
+          <h2>Layers</h2>
+          <div class="presets" id="presets"></div>
+          <ul class="layers" id="layer-list"></ul>
+        </section>
+
+        <section>
+          <h2>Search</h2>
+          <div class="search">
+            <input id="search" type="search" placeholder="Find a structure… e.g. femur, aorta" autocomplete="off" />
+          </div>
+          <ul id="search-results" class="results"></ul>
+        </section>
+
+        <section>
+          <h2>Quiz</h2>
+          <div class="quiz-setup">
+            <select id="quiz-scope" aria-label="Quiz scope"></select>
+            <button id="quiz-start" class="primary">Start quiz</button>
+          </div>
+        </section>
+
+        <section>
+          <h2>View</h2>
+          <div class="views">
+            <button data-view="front">Front</button>
+            <button data-view="back">Back</button>
+            <button data-view="left">Left</button>
+            <button data-view="right">Right</button>
+            <button data-view="reset">Reset</button>
+          </div>
+          <div class="tool">
+            <div class="tool-head">
+              <span>Cross-section</span>
+              <button id="slice-flip" class="tool-mini" title="Keep the other half" hidden>⇄ Flip</button>
+            </div>
+            <div class="seg" id="slice-axis">
+              <button data-axis="" class="active">Off</button>
+              <button data-axis="coronal" title="Front / back cut">Coronal</button>
+              <button data-axis="sagittal" title="Left / right cut">Sagittal</button>
+              <button data-axis="axial" title="Top / bottom cut">Axial</button>
+            </div>
+            <input id="slice-pos" type="range" min="0" max="1000" value="500" aria-label="Cut position" hidden />
+          </div>
+          <div class="tool">
+            <div class="tool-head"><span>Exploded view</span><span id="explode-pct" class="pct">0%</span></div>
+            <input id="explode" type="range" min="0" max="100" value="0" aria-label="Explode" />
+          </div>
+          <button id="share-copy" class="share-btn" title="Copy a link that reopens exactly this view">🔗 Copy link to this view</button>
+        </section>
+
+        <footer class="credits">
+          3D model: <a href="https://github.com/Z-Anatomy/Models-of-human-anatomy" target="_blank" rel="noopener">Z-Anatomy</a>
+          (CC BY-SA 4.0), based on <a href="https://dbarchive.biosciencedbc.jp/en/bodyparts3d/" target="_blank" rel="noopener">BodyParts3D</a>
+          © DBCLS (CC BY-SA 2.1 JP). Exercises: <a href="https://github.com/yuhonas/free-exercise-db" target="_blank" rel="noopener">free-exercise-db</a>
+          (public domain). Lighting: Poly Haven (CC0).
+        </footer>
+      </aside>
+
+      <button id="exercise-toggle" class="pill-btn" title="Exercise library">🏋 Exercises</button>
+      <aside id="exercise-panel" aria-label="Exercise library">
+        <header class="ex-head">
+          <h2>Exercises</h2>
+          <div class="ex-head-actions">
+            <button id="ex-settings-btn" class="icon-btn" title="Display settings" aria-label="Display settings" aria-expanded="false">⚙</button>
+            <button id="ex-close" class="icon-btn" title="Close" aria-label="Close exercise panel">×</button>
+          </div>
+        </header>
+        <div id="ex-settings" class="ex-settings" hidden></div>
+        <nav id="ex-tabs" class="ex-tabs" aria-label="Exercise views"></nav>
+        <div id="ex-active" class="ex-active" hidden></div>
+        <div id="ex-browse" class="ex-browse">
+          <div id="ex-recent" class="ex-recent" hidden></div>
+          <div class="search">
+            <input id="ex-search" type="search" placeholder="Search: dumbbell, chest, squat…" autocomplete="off" />
+          </div>
+          <button id="ex-muscle-filter" class="ex-muscle-filter" title="Remove the muscle filter" hidden></button>
+          <div class="ex-regions" id="ex-regions"></div>
+          <div class="ex-filter-row">
+            <select id="ex-equipment" aria-label="Equipment"></select>
+            <span id="ex-count" class="ex-count"></span>
+          </div>
+          <ul id="ex-list" class="ex-list"></ul>
+        </div>
+        <div id="ex-workout" class="ex-workout" hidden></div>
+        <div id="ex-detail" class="ex-detail" hidden></div>
+      </aside>
+
+      <div id="quizbar" hidden>
+        <div class="quiz-prompt"><img id="quiz-img" class="quiz-img" alt="" hidden /><span id="quiz-pre">Find the</span> <strong id="quiz-target"></strong><span id="quiz-post"></span></div>
+        <div class="quiz-feedback" id="quiz-feedback"></div>
+        <div class="quiz-stats"><span id="quiz-score">0 / 0</span><span id="quiz-streak"></span></div>
+        <div class="quiz-actions">
+          <button id="quiz-hint">Hint</button>
+          <button id="quiz-skip">Skip</button>
+          <button id="quiz-end" class="ghost">End</button>
+        </div>
+      </div>
+
+      <div id="info" hidden>
+        <button class="close" id="info-close" aria-label="Close">×</button>
+        <div class="chip" id="info-system"></div>
+        <h3 id="info-name"></h3>
+        <div class="sub" id="info-sub"></div>
+        <p id="info-desc"></p>
+        <div id="info-muscle" class="info-muscle" hidden>
+          <dl>
+            <dt>Action</dt><dd id="info-action"></dd>
+          </dl>
+          <dl id="info-more" hidden>
+            <dt>Origin</dt><dd id="info-origin"></dd>
+            <dt>Insertion</dt><dd id="info-insertion"></dd>
+            <dt>Nerve</dt><dd id="info-nerve"></dd>
+          </dl>
+          <button id="info-more-btn" class="info-more-btn" aria-expanded="false">Origin, insertion &amp; nerve ▾</button>
+        </div>
+        <div id="info-exercises" class="info-exercises" hidden></div>
+        <div class="info-actions">
+          <button id="info-focus">Focus</button>
+          <button id="info-isolate">Isolate</button>
+        </div>
+      </div>
+
+      <div id="toast" role="status" hidden></div>
+      <div id="tooltip" hidden></div>
+      <div id="help">Drag to rotate · Scroll to zoom · Right-drag to pan · Click a part to identify it</div>
+      <div id="loading">Loading anatomy model…</div>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
